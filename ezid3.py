@@ -64,8 +64,8 @@ import re
 import sys
 import time
 import types
-import urllib
-import urllib2
+import urllib.request as urlreq # Python 3.x
+from urllib.parse import quote # Python 3.x
 
 KNOWN_SERVERS = {
   "p": "https://ezid.cdlib.org"
@@ -121,13 +121,13 @@ class MyHelpFormatter (optparse.IndentedHelpFormatter):
   def format_usage (self, usage):
     return USAGE_TEXT
 
-class MyHTTPErrorProcessor (urllib2.HTTPErrorProcessor):
+class MyHTTPErrorProcessor (urlreq.HTTPErrorProcessor):
   def http_response (self, request, response):
     # Bizarre that Python leaves this out.
     if response.code == 201:
       return response
     else:
-      return urllib2.HTTPErrorProcessor.http_response(self, request, response)
+      return urlreq.HTTPErrorProcessor.http_response(self, request, response)
   https_response = http_response
 
 def formatAnvlRequest (args):
@@ -159,7 +159,7 @@ def encode (id):
 
 def issueRequest (path, method, data=None, returnHeaders=False,
   streamOutput=False):
-  request = urllib2.Request("%s/%s" % (_server, path))
+  request = urlreq.Request("%s/%s" % (_server, path))
   request.get_method = lambda: method
   if data:
     request.add_header("Content-Type", "text/plain; charset=UTF-8")
@@ -177,7 +177,7 @@ def issueRequest (path, method, data=None, returnHeaders=False,
         return response.decode("UTF-8"), connection.info()
       else:
         return response.decode("UTF-8")
-  except urllib2.HTTPError, e:
+  except urlreq.HTTPError as e:
     sys.stderr.write("%d %s\n" % (e.code, e.msg))
     if e.fp != None:
       response = e.fp.read()
@@ -202,7 +202,7 @@ def printAnvlResponse (response, sortLines=False):
       line = re.sub("%([0-9a-fA-F][0-9a-fA-F])",
         lambda m: chr(int(m.group(1), 16)), line)
     if _options.oneLine: line = line.replace("\n", " ").replace("\r", " ")
-    print line.encode(_options.encoding)
+    print(line.encode(_options.encoding))
 
 # Process command line arguments.
 
@@ -221,7 +221,7 @@ if len(args) < 3: parser.error("insufficient arguments")
 
 _server = KNOWN_SERVERS.get(args[0], args[0])
 
-_opener = urllib2.build_opener(MyHTTPErrorProcessor())
+_opener = urlreq.build_opener(MyHTTPErrorProcessor())
 if args[1].startswith("sessionid="):
   _cookie = args[1]
 elif args[1] != "-":
@@ -230,7 +230,7 @@ elif args[1] != "-":
   else:
     username = args[1]
     password = getpass.getpass()
-  h = urllib2.HTTPBasicAuthHandler()
+  h = urlreq.HTTPBasicAuthHandler()
   h.add_password("EZID", _server, username, password)
   _opener.add_handler(h)
 
@@ -239,7 +239,7 @@ if args[2].endswith("!"):
   args[2] = args[2][:-1]
 else:
   bang = False
-operation = filter(lambda o: o.startswith(args[2]), OPERATIONS)
+operation = list(filter(lambda o: o.startswith(args[2]), OPERATIONS))
 if len(operation) != 1: parser.error("unrecognized or ambiguous operation")
 operation = operation[0]
 if bang and not OPERATIONS[operation][1]:

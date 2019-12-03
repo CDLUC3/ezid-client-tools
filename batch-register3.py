@@ -208,7 +208,7 @@ import getpass
 import re
 import sys
 import urllib
-import urllib2
+import urllib.request as urlreq  # Python3.x
 # We'd prefer to use LXML, but stick with the inferior built-in
 # library for better portability.
 import xml.etree.ElementTree
@@ -230,7 +230,7 @@ def loadMappings (file):
         else:
           assert re.match("[.\w]+$", d), "invalid element name"
         m.append((d, e))
-      except Exception, e:
+      except Exception as e:
         assert False, "%s, line %d: %s" % (file, n, str(e))
   return m
 
@@ -282,7 +282,7 @@ def interpolate (expression, row):
                 "function returned complex object but there is " +\
                 "other text in expression"
               return r
-          except Exception, e:
+          except Exception as e:
             assert False, "error calling user-supplied function %s: %s" %\
               (f, str(e))
         else:
@@ -370,7 +370,7 @@ def transform (args, mappings, row):
           "user-supplied function must return string value in mapping to " +\
           "EZID metadata element"
         md[d] = v
-    except AssertionError, err:
+    except AssertionError as err:
       assert False, "%s, line %d: %s" % (args.mappingsFile, i+1, str(err))
   if dr != None:
     if args.operation == "mint":
@@ -401,12 +401,12 @@ def process1 (args, record):
   if args.operation == "mint":
     id = None
     if args.removeIdMapping and "_id" in record: del record["_id"]
-    r = urllib2.Request("https://ezid.cdlib.org/shoulder/" +
+    r = urlreq.Request("https://ezid.cdlib.org/shoulder/" +
       urllib.quote(args.shoulder, ":/"))
   else:
     id = str(record["_id"])
     del record["_id"]
-    r = urllib2.Request("https://ezid.cdlib.org/id/" + urllib.quote(id, ":/"))
+    r = urlreq.Request("https://ezid.cdlib.org/id/" + urllib.quote(id, ":/"))
     r.get_method = lambda: "PUT" if args.operation == "create" else "POST"
   s = toAnvl(record).encode("UTF-8")
   r.add_data(s)
@@ -419,18 +419,18 @@ def process1 (args, record):
       "Basic " + base64.b64encode(args.username + ":" + args.password))
   c = None
   try:
-    c = urllib2.urlopen(r)
+    c = urlreq.urlopen(r)
     s = c.read().decode("UTF-8")
     assert s.startswith("success:"), s
     return (s[8:].split()[0], None)
-  except urllib2.HTTPError, e:
+  except urllib2.HTTPError as e:
     if e.fp != None:
       s = e.fp.read().decode("UTF-8")
       if not s.startswith("error:"): s = "error: " + s
       return (id, s)
     else:
       return (id, "error: %d %s" % (e.code, e.msg))
-  except Exception, e:
+  except Exception as e:
     return (id, "error: " + str(e))
   finally:
     if c != None: c.close()
@@ -484,7 +484,7 @@ def process (args, mappings):
         w.writerow([c.encode("UTF-8")\
           for c in formOutputRow(args, row, record, n, id, error)])
         sys.stdout.flush()
-    except Exception, e:
+    except Exception as e:
       assert False, "record %d: %s" % (n, str(e))
 
 def main ():
@@ -541,6 +541,6 @@ def main ():
 
 try:
   main()
-except Exception, e:
+except Exception as e:
   sys.stderr.write("%s: error: %s\n" % (sys.argv[0].split("/")[-1], str(e)))
   sys.exit(1)

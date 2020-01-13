@@ -84,16 +84,19 @@ OPERATIONS = {
 }
 
 USAGE_TEXT = """Usage: ezid.py [options] credentials operation...
+
   options:
     -d          decode ANVL responses
     -e ENCODING character encoding; defaults to UTF-8
     -o          one line per ANVL value: convert newlines to spaces
     -t          format timestamps
+
   credentials:
     username:password
     username (password will be prompted for)
     sessionid=... (as returned by previous login)
     - (none)
+
   operation:
     m[int] shoulder [element value ...]
     c[reate][!] identifier [element value ...]
@@ -152,7 +155,7 @@ def formatAnvlRequest (args):
   return "\n".join(request)
 
 def encode (id):
-  return urllib.quote(id, ":/")
+  return quote(id, ":/")
 
 def issueRequest (path, method, data=None, returnHeaders=False,
   streamOutput=False):
@@ -299,3 +302,4 @@ elif operation == "logout":
 elif operation == "status":
   response = issueRequest("status", "GET")
   printAnvlResponse(response)
+

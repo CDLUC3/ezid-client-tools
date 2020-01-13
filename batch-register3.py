@@ -205,10 +205,11 @@ import argparse
 import base64
 import csv
 import getpass
+import traceback
 import re
 import sys
-import urllib
-import urllib.request as urlreq  # Python3.x
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 # We'd prefer to use LXML, but stick with the inferior built-in
 # library for better portability.
 import xml.etree.ElementTree
@@ -221,7 +222,6 @@ def loadMappings (file):
     for l in f:
       n += 1
       try:
-        l = l.decode("UTF-8")
         assert "=" in l, "invalid syntax"
         d, e = [v.strip() for v in l.split("=", 1)]
         if d.startswith("/"):
@@ -271,7 +271,7 @@ def interpolate (expression, row):
           try:
             import functions
             r = getattr(functions, f)(*args)
-            if isinstance(r, basestring):
+            if isinstance(r, str):
               v += r
             else:
               # We allow a function to return a complex object only if
@@ -306,14 +306,14 @@ def setDataciteValue (node, path, value):
   if type(value) is list:
     if len(value) == 0: return node
     assert all(type(v) is tuple and len(v) == 2 and\
-      isinstance(v[0], basestring) for v in value),\
+      isinstance(v[0], str) for v in value),\
       "invalid return value from user-supplied function: " +\
       "malformed list or tuple"
     assert all(re.match("(\w+|[.])(/(\w+|[.]))*(@\w+)?$", v[0])\
       for v in value),\
       "invalid return value from user-supplied function: " +\
       "invalid relative XPath expression"
-  elif isinstance(value, basestring):
+  elif isinstance(value, str):
     value = value.strip()
     if value == "": return node
   else:
@@ -344,11 +344,11 @@ def setDataciteValue (node, path, value):
       else:
         n = xml.etree.ElementTree.SubElement(n, q(e))
   if a != None:
-    assert isinstance(value, basestring),\
+    assert isinstance(value, str),\
       "unsupported interpolation: attribute %s requires string value" % a
     n.attrib[a] = value
   else:
-    if isinstance(value, basestring):
+    if isinstance(value, str):
       n.text = value
     else:
       for relpath, v in value: setDataciteValue(n, relpath, v)
@@ -366,7 +366,7 @@ def transform (args, mappings, row):
       if d.startswith("/"):
         dr = setDataciteValue(dr, d, v)
       else:
-        assert isinstance(v, basestring), "unsupported interpolation: " +\
+        assert isinstance(v, str), "unsupported interpolation: " +\
           "user-supplied function must return string value in mapping to " +\
           "EZID metadata element"
         md[d] = v
@@ -390,7 +390,7 @@ def toAnvl (record):
       p = "[%:\r\n]"
     else:
       p = "[%\r\n]"
-    return re.sub(p, lambda c: "%%%02X" % ord(c.group(0)), s)
+    return re.sub(p, lambda c: "%%%02X" % ord(c.group(0)), str(s))
   return "".join("%s: %s\n" % (escape(k, True), escape(record[k])) for k in\
     sorted(record.keys()))
 
@@ -401,29 +401,30 @@ def process1 (args, record):
   if args.operation == "mint":
     id = None
     if args.removeIdMapping and "_id" in record: del record["_id"]
-    r = urlreq.Request("https://ezid.cdlib.org/shoulder/" +
-      urllib.quote(args.shoulder, ":/"))
+
+    r = urllib.request.Request("https://ids-ezid-stg.cdlib.org/shoulder/" +
+      urllib.parse.quote(args.shoulder, ":/"))
   else:
     id = str(record["_id"])
     del record["_id"]
-    r = urlreq.Request("https://ezid.cdlib.org/id/" + urllib.quote(id, ":/"))
+    r = urllib.request.Request("https://ids-ezid-stg.cdlib.org/id/" + urllib.parse.quote(id, ":/"))
     r.get_method = lambda: "PUT" if args.operation == "create" else "POST"
   s = toAnvl(record).encode("UTF-8")
-  r.add_data(s)
+  r.data = s
   r.add_header("Content-Type", "text/plain; charset=UTF-8")
   r.add_header("Content-Length", str(len(s)))
   if args.cookie != None:
     r.add_header("Cookie", args.cookie)
   else:
     r.add_header("Authorization",
-      "Basic " + base64.b64encode(args.username + ":" + args.password))
+      "Basic " + base64.b64encode((args.username + ":" + args.password).encode('utf-8')).decode('utf-8'))
   c = None
   try:
-    c = urlreq.urlopen(r)
+    c = urllib.request.urlopen(r)
     s = c.read().decode("UTF-8")
     assert s.startswith("success:"), s
     return (s[8:].split()[0], None)
-  except urllib2.HTTPError as e:
+  except urllib.error.HTTPError as e:
     if e.fp != None:
       s = e.fp.read().decode("UTF-8")
       if not s.startswith("error:"): s = "error: " + s
@@ -474,15 +475,14 @@ def process (args, mappings):
         "argument -o: input column reference exceeds number of columns"
     try:
       assert len(row) == numColumns, "inconsistent number of columns"
-      row = [c.decode("UTF-8") for c in row]
+      row = [c for c in row]
       record = transform(args, mappings, row)
       if args.previewMode:
         sys.stdout.write("\n")
         sys.stdout.write(toAnvl(record).encode("UTF-8"))
       else:
         id, error = process1(args, record)
-        w.writerow([c.encode("UTF-8")\
-          for c in formOutputRow(args, row, record, n, id, error)])
+        w.writerow([c for c in formOutputRow(args, row, record, n, id, error)])
         sys.stdout.flush()
     except Exception as e:
       assert False, "record %d: %s" % (n, str(e))
@@ -542,5 +542,7 @@ def main ():
 try:
   main()
 except Exception as e:
+  print((traceback.format_exc()))
   sys.stderr.write("%s: error: %s\n" % (sys.argv[0].split("/")[-1], str(e)))
   sys.exit(1)
+

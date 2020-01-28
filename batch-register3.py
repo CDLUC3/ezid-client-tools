@@ -402,12 +402,12 @@ def process1 (args, record):
     id = None
     if args.removeIdMapping and "_id" in record: del record["_id"]
 
-    r = urllib.request.Request("https://ids-ezid-stg.cdlib.org/shoulder/" +
+    r = urllib.request.Request("https://ezid.cdlib.org/shoulder/" +
       urllib.parse.quote(args.shoulder, ":/"))
   else:
     id = str(record["_id"])
     del record["_id"]
-    r = urllib.request.Request("https://ids-ezid-stg.cdlib.org/id/" + urllib.parse.quote(id, ":/"))
+    r = urllib.request.Request("https://ezid.cdlib.org/id/" + urllib.parse.quote(id, ":/"))
     r.get_method = lambda: "PUT" if args.operation == "create" else "POST"
   s = toAnvl(record).encode("UTF-8")
   r.data = s

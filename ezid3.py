@@ -133,7 +133,7 @@ class MyHTTPErrorProcessor (urlreq.HTTPErrorProcessor):
 def formatAnvlRequest (args):
   request = []
   for i in range(0, len(args), 2):
-    k = args[i].decode(_options.encoding)
+    k = args[i]
     if k == "@":
       f = codecs.open(args[i+1], encoding=_options.encoding)
       request += [l.strip("\r\n") for l in f.readlines()]
@@ -143,7 +143,7 @@ def formatAnvlRequest (args):
         k = "@"
       else:
         k = re.sub("[%:\r\n]", lambda c: "%%%02X" % ord(c.group(0)), k)
-      v = args[i+1].decode(_options.encoding)
+      v = args[i+1]
       if v.startswith("@@"):
         v = v[1:]
       elif v.startswith("@") and len(v) > 1:
@@ -163,7 +163,7 @@ def issueRequest (path, method, data=None, returnHeaders=False,
   request.get_method = lambda: method
   if data:
     request.add_header("Content-Type", "text/plain; charset=UTF-8")
-    request.add_data(data.encode("UTF-8"))
+    request.data = data.encode("UTF-8")
   if _cookie: request.add_header("Cookie", _cookie)
   try:
     connection = _opener.open(request)

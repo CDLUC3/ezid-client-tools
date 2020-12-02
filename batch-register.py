@@ -99,6 +99,15 @@
 #   def year_only(v):
 #     return v[:4]
 #
+# Required metadata: DataCite schema version 4 requires the following elements:
+#   title
+#   creatorName
+#   publisher
+#   publicationYear
+#   resourceType/resourceTypeGeneral
+#
+# Other metadata elements are recommended or optional. See the full DataCite schema documentation: https://schema.datacite.org/. 
+#
 # Limitations: It is not possible to update just a portion of existing
 # DataCite XML records.  The order of mappings determines the ordering
 # of XML elements.  When mapping to both a DataCite metadata schema

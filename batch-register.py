@@ -104,7 +104,7 @@
 #   creatorName
 #   publisher
 #   publicationYear
-#   resourceType/resourceTypeGeneral
+#   resourceType@resourceTypeGeneral
 #
 # Other metadata elements are recommended or optional. See the full DataCite schema documentation: https://schema.datacite.org/. 
 #

@@ -539,10 +539,12 @@ def main ():
         args.password = getpass.getpass()
   process(args, mappings)
 
-try:
-  main()
-except Exception as e:
-  print((traceback.format_exc()))
-  sys.stderr.write("%s: error: %s\n" % (sys.argv[0].split("/")[-1], str(e)))
-  sys.exit(1)
+if __name__ == "__main__":
+
+  try:
+    main()
+  except Exception as e:
+    print((traceback.format_exc()))
+    sys.stderr.write("%s: error: %s\n" % (sys.argv[0].split("/")[-1], str(e)))
+    sys.exit(1)
 

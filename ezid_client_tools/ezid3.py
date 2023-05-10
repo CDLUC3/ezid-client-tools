@@ -206,100 +206,104 @@ def printAnvlResponse (response, sortLines=False):
 
 # Process command line arguments.
 
-parser = optparse.OptionParser(formatter=MyHelpFormatter())
-parser.add_option("-d", action="store_true", dest="decode", default=False)
-parser.add_option("-e", action="store", dest="encoding", default="UTF-8")
-parser.add_option("-o", action="store_true", dest="oneLine", default=False)
-parser.add_option("-t", action="store_true", dest="formatTimestamps",
-  default=False)
+def main():
 
-_options, args = parser.parse_args()
-# Simulate selection of the production server (server selection is not
-# supported in this public version of the code).
-args.insert(0, "p")
-if len(args) < 3: parser.error("insufficient arguments")
+  parser = optparse.OptionParser(formatter=MyHelpFormatter())
+  parser.add_option("-d", action="store_true", dest="decode", default=False)
+  parser.add_option("-e", action="store", dest="encoding", default="UTF-8")
+  parser.add_option("-o", action="store_true", dest="oneLine", default=False)
+  parser.add_option("-t", action="store_true", dest="formatTimestamps",
+    default=False)
 
-_server = KNOWN_SERVERS.get(args[0], args[0])
+  _options, args = parser.parse_args()
+  # Simulate selection of the production server (server selection is not
+  # supported in this public version of the code).
+  args.insert(0, "p")
+  if len(args) < 3: parser.error("insufficient arguments")
 
-_opener = urlreq.build_opener(MyHTTPErrorProcessor())
-if args[1].startswith("sessionid="):
-  _cookie = args[1]
-elif args[1] != "-":
-  if ":" in args[1]:
-    username, password = args[1].split(":", 1)
+  _server = KNOWN_SERVERS.get(args[0], args[0])
+
+  _opener = urlreq.build_opener(MyHTTPErrorProcessor())
+  if args[1].startswith("sessionid="):
+    _cookie = args[1]
+  elif args[1] != "-":
+    if ":" in args[1]:
+      username, password = args[1].split(":", 1)
+    else:
+      username = args[1]
+      password = getpass.getpass()
+    h = urlreq.HTTPBasicAuthHandler()
+    h.add_password("EZID", _server, username, password)
+    _opener.add_handler(h)
+
+  if args[2].endswith("!"):
+    bang = True
+    args[2] = args[2][:-1]
   else:
-    username = args[1]
-    password = getpass.getpass()
-  h = urlreq.HTTPBasicAuthHandler()
-  h.add_password("EZID", _server, username, password)
-  _opener.add_handler(h)
+    bang = False
+  operation = list(filter(lambda o: o.startswith(args[2]), OPERATIONS))
+  if len(operation) != 1: parser.error("unrecognized or ambiguous operation")
+  operation = operation[0]
+  if bang and not OPERATIONS[operation][1]:
+    parser.error("unrecognized operation")
 
-if args[2].endswith("!"):
-  bang = True
-  args[2] = args[2][:-1]
-else:
-  bang = False
-operation = list(filter(lambda o: o.startswith(args[2]), OPERATIONS))
-if len(operation) != 1: parser.error("unrecognized or ambiguous operation")
-operation = operation[0]
-if bang and not OPERATIONS[operation][1]:
-  parser.error("unrecognized operation")
+  args = args[3:]
 
-args = args[3:]
+  if (type(OPERATIONS[operation][0]) is int and\
+    len(args) != OPERATIONS[operation][0]) or\
+    (type(OPERATIONS[operation][0]) is types.LambdaType and\
+    not OPERATIONS[operation][0](len(args))):
+    parser.error("incorrect number of arguments for operation")
 
-if (type(OPERATIONS[operation][0]) is int and\
-  len(args) != OPERATIONS[operation][0]) or\
-  (type(OPERATIONS[operation][0]) is types.LambdaType and\
-  not OPERATIONS[operation][0](len(args))):
-  parser.error("incorrect number of arguments for operation")
+  # Perform the operation.
 
-# Perform the operation.
+  if operation == "mint":
+    shoulder = args[0]
+    if len(args) > 1:
+      data = formatAnvlRequest(args[1:])
+    else:
+      data = None
+    response = issueRequest("shoulder/"+encode(shoulder), "POST", data)
+    printAnvlResponse(response)
+  elif operation == "create":
+    id = args[0]
+    if len(args) > 1:
+      data = formatAnvlRequest(args[1:])
+    else:
+      data = None
+    path = "id/"+encode(id)
+    if bang: path += "?update_if_exists=yes"
+    response = issueRequest(path, "PUT", data)
+    printAnvlResponse(response)
+  elif operation == "view":
+    id = args[0]
+    path = "id/"+encode(id)
+    if bang: path += "?prefix_match=yes"
+    response = issueRequest(path, "GET")
+    printAnvlResponse(response, sortLines=True)
+  elif operation == "update":
+    id = args[0]
+    if len(args) > 1:
+      data = formatAnvlRequest(args[1:])
+    else:
+      data = None
+    response = issueRequest("id/"+encode(id), "POST", data)
+    printAnvlResponse(response)
+  elif operation == "delete":
+    id = args[0]
+    response = issueRequest("id/"+encode(id), "DELETE")
+    printAnvlResponse(response)
+  elif operation == "login":
+    response, headers = issueRequest("login", "GET", returnHeaders=True)
+    response += "\nsessionid=%s\n" %\
+      headers["set-cookie"].split(";")[0].split("=")[1]
+    printAnvlResponse(response)
+  elif operation == "logout":
+    response = issueRequest("logout", "GET")
+    printAnvlResponse(response)
+  elif operation == "status":
+    response = issueRequest("status", "GET")
+    printAnvlResponse(response)
 
-if operation == "mint":
-  shoulder = args[0]
-  if len(args) > 1:
-    data = formatAnvlRequest(args[1:])
-  else:
-    data = None
-  response = issueRequest("shoulder/"+encode(shoulder), "POST", data)
-  printAnvlResponse(response)
-elif operation == "create":
-  id = args[0]
-  if len(args) > 1:
-    data = formatAnvlRequest(args[1:])
-  else:
-    data = None
-  path = "id/"+encode(id)
-  if bang: path += "?update_if_exists=yes"
-  response = issueRequest(path, "PUT", data)
-  printAnvlResponse(response)
-elif operation == "view":
-  id = args[0]
-  path = "id/"+encode(id)
-  if bang: path += "?prefix_match=yes"
-  response = issueRequest(path, "GET")
-  printAnvlResponse(response, sortLines=True)
-elif operation == "update":
-  id = args[0]
-  if len(args) > 1:
-    data = formatAnvlRequest(args[1:])
-  else:
-    data = None
-  response = issueRequest("id/"+encode(id), "POST", data)
-  printAnvlResponse(response)
-elif operation == "delete":
-  id = args[0]
-  response = issueRequest("id/"+encode(id), "DELETE")
-  printAnvlResponse(response)
-elif operation == "login":
-  response, headers = issueRequest("login", "GET", returnHeaders=True)
-  response += "\nsessionid=%s\n" %\
-    headers["set-cookie"].split(";")[0].split("=")[1]
-  printAnvlResponse(response)
-elif operation == "logout":
-  response = issueRequest("logout", "GET")
-  printAnvlResponse(response)
-elif operation == "status":
-  response = issueRequest("status", "GET")
-  printAnvlResponse(response)
-
+if __name__ == "__main__":
+  main()

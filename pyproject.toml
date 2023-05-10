@@ -13,6 +13,10 @@ dynamic = ["version", "description"]
 [project.urls]
 Home = "https://github.com/CDLUC3"
 
+[project.scripts]
+batch-register3 = "ezid_client_tools.batch_register3:main"
+ezid3 = "ezid_client_tools.ezid3:main"
+
 [tools.flit.metadata]
 classifiers = [
     "Intended Audience :: Developers",
@@ -21,11 +25,4 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-[tools.flit.package_data]
-"ezid_client_tools" = [
-    "batch-download.sh",
-    "batch-register.py",
-    "batch-register3.py",
-    "ezid.py",
-    "ezid3.py"
-]
+# batch-download.sh to be installed in bin

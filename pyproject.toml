@@ -15,7 +15,7 @@ Home = "https://github.com/CDLUC3"
 
 [project.scripts]
 batch-register = "ezid_client_tools.batch_register:main"
-ezid = "ezid_client_tools.ezid:main"
+ezid = "ezid_client_tools.client:main"
 
 [tools.flit.metadata]
 classifiers = [

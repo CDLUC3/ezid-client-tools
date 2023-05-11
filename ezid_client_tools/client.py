@@ -429,14 +429,18 @@ class ClientError(Exception):
 class ConsoleClient(Client):
 
     def __getattribute__(self, name):
+        """
+        This method overrides all the op_ methods to allow us to print the response.
+        """
         if name.startswith("op_"):
             def wrapper(*args, **kwargs):
-                method = getattr(super(ConsoleClient, self), name)
+                # generic version of getattr(super(ConsoleClient, self), name)
+                method = getattr(super(type(self), self), name)
                 r = method(*args, **kwargs)
                 return self.print_anvl_response(r)
             return wrapper
         else:
-            return Client.__getattribute__(self, name)
+            return super().__getattribute__(name)
 
     def print_anvl_response(self, response, sortLines=False):
         line_list = response.splitlines()

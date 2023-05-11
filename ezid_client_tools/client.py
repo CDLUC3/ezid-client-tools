@@ -165,10 +165,10 @@ def main():
     parser.add_argument("--debug", action="store_true", help="Debug level logging")
 
     args = parser.parse_args()
-    client = Client(args)
+    client = ConsoleClient(args)
     try:
         client.operation()
-    except ClientError as e:
+    except Exception as e:
         print(f"Error: {str(e)}")
 
 
@@ -191,7 +191,7 @@ class Client:
 
         self.ezid_url = KNOWN_SERVERS.get(args.server, args.server)
 
-        print(f"Using EZID URL: {self.ezid_url}", file=sys.stderr)
+        # print(f"Using EZID URL: {self.ezid_url}", file=sys.stderr)
 
         self.opener = self.create_opener(args.credentials)
 
@@ -218,7 +218,7 @@ class Client:
             raise ClientError(f"Unknown operation: {op_cmd}")
 
         try:
-            op_fn(has_bang, op_args)
+            return op_fn(has_bang, op_args)
         except Exception as e:
             if self.args.debug:
                 raise
@@ -231,8 +231,7 @@ class Client:
         shoulder_str = op_args.pop(0)
         self.assert_key_value_args(op_args)
         data = self.format_anvl_request(op_args)
-        r = self.issue_request("shoulder/" + self.encode(shoulder_str), "POST", data)
-        self.print_anvl_response(r)
+        return self.issue_request("shoulder/" + self.encode(shoulder_str), "POST", data)
 
     def op_create(self, has_bang, op_args):
         """c[reate][!] identifier [element value ...]
@@ -245,8 +244,7 @@ class Client:
         path = "id/" + self.encode(id_str)
         if has_bang:
             path += "?update_if_exists=yes"
-        r = self.issue_request(path, "PUT", data)
-        self.print_anvl_response(r)
+        return self.issue_request(path, "PUT", data)
 
     def op_view(self, has_bang, op_args):
         """v[iew][!] identifier
@@ -257,8 +255,7 @@ class Client:
         path = "id/" + self.encode(id_str)
         if has_bang:
             path += "?prefix_match=yes"
-        r = self.issue_request(path, "GET")
-        self.print_anvl_response(r, sortLines=True)
+        return self.issue_request(path, "GET")
 
     def op_update(self, has_bang, op_args):
         """u[pdate] identifier [element value ...]"""
@@ -270,8 +267,7 @@ class Client:
         path = "id/" + self.encode(id_str)
         if self.args.disableExternalUpdates:
             path += "?update_external_services=no"
-        r = self.issue_request(path, "POST", data)
-        self.print_anvl_response(r)
+        return self.issue_request(path, "POST", data)
 
     def op_delete(self, has_bang, op_args):
         """d[elete] identifier"""
@@ -281,8 +277,7 @@ class Client:
         path = "id/" + self.encode(id_str)
         if self.args.disableExternalUpdates:
             path += "?update_external_services=no"
-        r = self.issue_request(path, "DELETE")
-        self.print_anvl_response(r)
+        return self.issue_request(path, "DELETE")
 
     def op_login(self, has_bang, op_args):
         """login"""
@@ -291,14 +286,13 @@ class Client:
         response, headers = self.issue_request("login", "GET", returnHeaders=True)
         session_id = headers["set-cookie"].split(";")[0].split("=")[1]
         response += f"\nsessionid={session_id}\n"
-        self.print_anvl_response(response)
+        return response
 
     def op_logout(self, has_bang, op_args):
         """logout"""
         self.assert_not_has_bang(has_bang)
         self.assert_no_args(op_args)
-        r = self.issue_request("logout", "GET")
-        self.print_anvl_response(r)
+        return self.issue_request("logout", "GET")
 
     def op_status(self, has_bang, op_args):
         """s[tatus] [detailed] [*|subsystemlist]"""
@@ -311,15 +305,13 @@ class Client:
             raise ClientError("Incorrect number of arguments for operation")
         if len(op_args):
             query_dict["subsystems"] = op_args[0]
-        r = self.issue_request("status?" + urllib.parse.urlencode(query_dict), "GET")
-        self.print_anvl_response(r)
+        return self.issue_request("status?" + urllib.parse.urlencode(query_dict), "GET")
 
     def op_Version(self, has_bang, op_args):
         """V[ersion]"""
         self.assert_not_has_bang(has_bang)
         self.assert_no_args(op_args)
-        r = self.issue_request("version", "GET")
-        self.print_anvl_response(r)
+        return self.issue_request("version", "GET")
 
     def format_anvl_request(self, op_list):
         if not op_list:
@@ -388,34 +380,6 @@ class Client:
                 sys.stderr.write(e.fp.read().decode(encoding="utf-8"))
             sys.exit(1)
 
-    def print_anvl_response(self, response, sortLines=False):
-        line_list = response.splitlines()
-        if sortLines and len(line_list) >= 1:
-            statusLine = line_list[0]
-            line_list = line_list[1:]
-            line_list.sort()
-            line_list.insert(0, statusLine)
-        for line in line_list:
-            if self.args.formatTimestamps and (
-                line.startswith("_created:") or line.startswith("_updated:")
-            ):
-                ls = line.split(":")
-                line = (
-                    ls[0]
-                    + ": "
-                    + time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(int(ls[1])))
-                )
-            if self.args.decode:
-                line = re.sub(
-                    "%([0-9a-fA-F][0-9a-fA-F])",
-                    lambda m: chr(int(m.group(1), 16)),
-                    line,
-                )
-            if self.args.oneLine:
-                line = line.replace("\n", " ").replace("\r", " ")
-            # print(line.encode(_options.encoding))
-            print(line)
-
     def create_opener(self, credentials):
         opener = urllib.request.build_opener(urllib.request.HTTPErrorProcessor())
 
@@ -461,6 +425,46 @@ class Client:
 
 class ClientError(Exception):
     pass
+
+class ConsoleClient(Client):
+
+    def __getattribute__(self, name):
+        if name.startswith("op_"):
+            def wrapper(*args, **kwargs):
+                method = getattr(super(ConsoleClient, self), name)
+                r = method(*args, **kwargs)
+                return self.print_anvl_response(r)
+            return wrapper
+        else:
+            return Client.__getattribute__(self, name)
+
+    def print_anvl_response(self, response, sortLines=False):
+        line_list = response.splitlines()
+        if sortLines and len(line_list) >= 1:
+            statusLine = line_list[0]
+            line_list = line_list[1:]
+            line_list.sort()
+            line_list.insert(0, statusLine)
+        for line in line_list:
+            if self.args.formatTimestamps and (
+                line.startswith("_created:") or line.startswith("_updated:")
+            ):
+                ls = line.split(":")
+                line = (
+                    ls[0]
+                    + ": "
+                    + time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(int(ls[1])))
+                )
+            if self.args.decode:
+                line = re.sub(
+                    "%([0-9a-fA-F][0-9a-fA-F])",
+                    lambda m: chr(int(m.group(1), 16)),
+                    line,
+                )
+            if self.args.oneLine:
+                line = line.replace("\n", " ").replace("\r", " ")
+            # print(line.encode(_options.encoding))
+            print(line)
 
 
 if __name__ == "__main__":

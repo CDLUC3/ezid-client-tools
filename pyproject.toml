@@ -14,8 +14,8 @@ dynamic = ["version", "description"]
 Home = "https://github.com/CDLUC3"
 
 [project.scripts]
-batch-register3 = "ezid_client_tools.batch_register3:main"
-ezid3 = "ezid_client_tools.ezid3:main"
+batch-register = "ezid_client_tools.batch_register:main"
+ezid = "ezid_client_tools.ezid:main"
 
 [tools.flit.metadata]
 classifiers = [

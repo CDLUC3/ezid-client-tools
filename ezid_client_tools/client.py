@@ -83,7 +83,7 @@ signal.signal(signal.SIGINT, lambda signal, frame: sys.exit())
 
 KNOWN_SERVERS = {
     "l": "http://localhost:8000",
-    "s": "https://uc3-ezidx2-stg.cdlib.org",
+    "s": "https://ezid-stg.cdlib.org",
     "p": "https://ezid.cdlib.org",
 }
 
@@ -100,8 +100,11 @@ CMD_TUP = (
     "Version",
 )
 
+def parser():
+    """
+    generates the argparse.ArgumentParser for the ezid command line client
+    """
 
-def main():
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter,
@@ -164,7 +167,11 @@ def main():
     )
     parser.add_argument("--debug", action="store_true", help="Debug level logging")
 
-    args = parser.parse_args()
+    return parser
+
+def main():
+
+    args = parser().parse_args()
     client = ConsoleClient(args)
     try:
         client.operation()
@@ -173,8 +180,11 @@ def main():
 
 
 class Client:
-    def __init__(self, args):
-        self.args = args
+    def __init__(self, args=None):
+        if args is None:
+            self.args = parser().parse_args(['p', '', []])
+        else:
+            self.args = args
         self.opener = None
         self.ezid_url = None
         self.cookie = None

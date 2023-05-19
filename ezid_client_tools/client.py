@@ -232,6 +232,8 @@ class Client:
         except Exception as e:
             if self.args.debug:
                 raise
+            if isinstance(e, urllib.error.HTTPError):
+                raise HTTPClientError(e.url, e.code, e.msg, e.hdrs, e.fp) from e
             raise ClientError(str(e))
 
     def op_mint(self, has_bang, op_args):
@@ -385,10 +387,7 @@ class Client:
                 else:
                     return r.decode("UTF-8")
         except urllib.error.HTTPError as e:
-            sys.stderr.write(f"{e.code:d} {str(e)}\n")
-            if e.fp:
-                sys.stderr.write(e.fp.read().decode(encoding="utf-8"))
-            sys.exit(1)
+            raise(e)
 
     def create_opener(self, credentials):
         opener = urllib.request.build_opener(urllib.request.HTTPErrorProcessor())
@@ -436,6 +435,12 @@ class Client:
 class ClientError(Exception):
     pass
 
+class HTTPClientError(urllib.error.HTTPError, ClientError):
+    def __init__(self, url, code, msg, hdrs, fp=None):
+        urllib.error.HTTPError.__init__(self, url, code, msg, hdrs, fp)
+        ClientError.__init__(self)
+
+
 class ConsoleClient(Client):
 
     def __getattribute__(self, name):
@@ -451,6 +456,18 @@ class ConsoleClient(Client):
             return wrapper
         else:
             return super().__getattribute__(name)
+
+    def issue_request(self, path, method, data=None, returnHeaders=False, streamOutput=False):
+        """
+        This method overrides the issue_request method to print the error message for calls from the console
+        """
+        try:
+            return super().issue_request(path, method, data, returnHeaders, streamOutput)
+        except urllib.error.HTTPError as e:
+            sys.stderr.write(f"{e.code:d} {str(e)}\n")
+            if e.fp:
+                sys.stderr.write(e.fp.read().decode(encoding="utf-8"))
+            sys.exit(1)
 
     def print_anvl_response(self, response, sortLines=False):
         line_list = response.splitlines()

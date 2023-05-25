@@ -295,7 +295,7 @@ class Client:
         """login"""
         self.assert_not_has_bang(has_bang)
         self.assert_no_args(op_args)
-        response, headers = self.issue_request("login", "GET", returnHeaders=True)
+        response, headers, status = self.issue_request("login", "GET", returnHeaders=True)
         session_id = headers["set-cookie"].split(";")[0].split("=")[1]
         response += f"\nsessionid={session_id}\n"
         return response
@@ -367,7 +367,7 @@ class Client:
                 buffer = buffer[status_pos:]
 
     def issue_request(
-        self, path, method, data=None, returnHeaders=False, streamOutput=False
+        self, path, method, data=None, returnHeaders=True, streamOutput=False
     ):
         request = urllib.request.Request(f"{self.ezid_url}/{path}")
         request.get_method = lambda: method
@@ -383,7 +383,7 @@ class Client:
             else:
                 r = connection.read()
                 if returnHeaders:
-                    return r.decode("UTF-8"), connection.info()
+                    return r.decode("UTF-8"), connection.info(), connection.status
                 else:
                     return r.decode("UTF-8")
         except urllib.error.HTTPError as e:

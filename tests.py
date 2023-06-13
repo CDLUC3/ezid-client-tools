@@ -49,3 +49,25 @@ class TestClient:
             "erc.who",
             "success",
         }
+
+class TestConsoleClient:
+    @pytest.fixture
+    def cclient(self):
+        cclient = ect.ConsoleClient()
+        cclient.args.credentials = f"{EZID_USER}:{EZID_PASSWD}"
+        cclient.args.server = "p"
+        return cclient
+
+    def test_true(self):
+        assert True
+
+    @pytest.mark.xfail()
+    def test_false(self):
+        assert False
+
+    def test_console_client_view(self, cclient):
+        """
+        making sure the console client can view an identifier
+        """
+        cclient.args.operation = ["view", "ark:/28722/k2154wc6r"]
+        cclient.operation()

@@ -1,8 +1,14 @@
-
+import sys
 import os
-import pytest
-import ezid_client_tools as ect
-from ezid_client_tools.utils import ANVL
+
+# add the 'src' directory as one where we can import modules
+src_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'src')
+sys.path.append(src_dir)
+
+import pytest  # noqa: E402
+
+import ezid_client_tools as ect  # noqa: E402
+from ezid_client_tools.utils import ANVL  # noqa: E402
 
 
 EZID_USER = os.environ.get("EZID_USER")

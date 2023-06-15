@@ -115,10 +115,12 @@ def parser():
     )
     parser.add_argument(
         "credentials",
-        help=("username:password, "
-              "username (will prompt for password), "
-              "sessionid=... (as returned by previous login), "
-              "- (none)")
+        help=(
+            "username:password, "
+            "username (will prompt for password), "
+            "sessionid=... (as returned by previous login), "
+            "- (none)"
+        ),
     )
     parser.add_argument(
         "operation",

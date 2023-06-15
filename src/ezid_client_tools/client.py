@@ -73,7 +73,6 @@ import signal
 import ssl
 import sys
 import time
-import types
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -100,6 +99,7 @@ CMD_TUP = (
     "Version",
 )
 
+
 def parser():
     """
     generates the argparse.ArgumentParser for the ezid command line client
@@ -115,7 +115,10 @@ def parser():
     )
     parser.add_argument(
         "credentials",
-        help="username:password, username (will prompt for password), sessionid=... (as returned by previous login), - (none)",
+        help=("username:password, "
+              "username (will prompt for password), "
+              "sessionid=... (as returned by previous login), "
+              "- (none)")
     )
     parser.add_argument(
         "operation",
@@ -169,8 +172,8 @@ def parser():
 
     return parser
 
-def main():
 
+def main():
     args = parser().parse_args()
     client = ConsoleClient(args)
     try:
@@ -182,14 +185,14 @@ def main():
 class Client:
     def __init__(self, args=None):
         if args is None:
-            self.args = parser().parse_args(['p', '', []])
+            self.args = parser().parse_args(["p", "", []])
         else:
             self.args = args
         self.opener = None
         self.ezid_url = None
         self.cookie = None
 
-    def operation(self):
+    def operation(self):  # noqa: C901
         args = self.args
 
         if args.disableCertificateChecking:
@@ -295,7 +298,9 @@ class Client:
         """login"""
         self.assert_not_has_bang(has_bang)
         self.assert_no_args(op_args)
-        response, headers, status = self.issue_request("login", "GET", returnHeaders=True)
+        response, headers, status = self.issue_request(
+            "login", "GET", returnHeaders=True
+        )
         session_id = headers["set-cookie"].split(";")[0].split("=")[1]
         response += f"\nsessionid={session_id}\n"
         return response
@@ -334,7 +339,7 @@ class Client:
             k = op_list[i]
             if k == "@":
                 f = codecs.open(op_list[i + 1], encoding=self.args.encoding)
-                request += [l.strip("\r\n") for l in f.readlines()]
+                request += [line.strip("\r\n") for line in f.readlines()]
                 f.close()
             else:
                 if k == "@@":
@@ -387,7 +392,7 @@ class Client:
                 else:
                     return r.decode("UTF-8")
         except urllib.error.HTTPError as e:
-            raise(e)
+            raise (e)
 
     def create_opener(self, credentials):
         opener = urllib.request.build_opener(urllib.request.HTTPErrorProcessor())
@@ -435,6 +440,7 @@ class Client:
 class ClientError(Exception):
     pass
 
+
 class HTTPClientError(urllib.error.HTTPError, ClientError):
     def __init__(self, url, code, msg, hdrs, fp=None):
         urllib.error.HTTPError.__init__(self, url, code, msg, hdrs, fp)
@@ -442,27 +448,32 @@ class HTTPClientError(urllib.error.HTTPError, ClientError):
 
 
 class ConsoleClient(Client):
-
     def __getattribute__(self, name):
         """
         This method overrides all the op_ methods to allow us to print the response.
         """
         if name.startswith("op_"):
+
             def wrapper(*args, **kwargs):
                 # generic version of getattr(super(ConsoleClient, self), name)
                 method = getattr(super(type(self), self), name)
                 r = method(*args, **kwargs)
                 return self.print_anvl_response(r)
+
             return wrapper
         else:
             return super().__getattribute__(name)
 
-    def issue_request(self, path, method, data=None, returnHeaders=False, streamOutput=False):
+    def issue_request(
+        self, path, method, data=None, returnHeaders=False, streamOutput=False
+    ):
         """
         This method overrides the issue_request method to print the error message for calls from the console
         """
         try:
-            return super().issue_request(path, method, data, returnHeaders, streamOutput)
+            return super().issue_request(
+                path, method, data, returnHeaders, streamOutput
+            )
         except urllib.error.HTTPError as e:
             sys.stderr.write(f"{e.code:d} {str(e)}\n")
             if e.fp:

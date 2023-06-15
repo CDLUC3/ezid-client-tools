@@ -14,8 +14,9 @@ if (EZID_USER is None) or (EZID_PASSWD is None):
     EZID_USER = settings.EZID_USER
     EZID_PASSWD = settings.EZID_PASSWD
 
-    
+
 class TestClient:
+
     @pytest.fixture
     def client(self):
         client = ect.Client()
@@ -50,7 +51,9 @@ class TestClient:
             "success",
         }
 
+
 class TestConsoleClient:
+
     @pytest.fixture
     def cclient(self):
         cclient = ect.ConsoleClient()

@@ -3,7 +3,7 @@ name: Build and Release
 on:
   push:
     tags:
-      - '[0-9]+\.[0-9]+\.[0-9]'
+      - 'v*'
       - '[0-9]{4}-[0-9]{2}-[0-9]{2}'
 
 jobs:
@@ -18,11 +18,11 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel
+      - name: Install pip wheel
+        run: python -m pip install wheel
 
-      - name: Build wheels
-        run: python -m cibuildwheel --output-dir wheelhouse
+      - name: Build wheel
+        run: python -m pip wheel . --wheel-dir wheelhouse
 
       - name: Create GitHub Release
         id: create_release

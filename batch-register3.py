@@ -215,7 +215,6 @@ import urllib.request, urllib.error, urllib.parse
 # library for better portability.
 import xml.etree.ElementTree
 
-
 def loadMappings(file):
     # returns: [(destination, expression), ...]
     m = []

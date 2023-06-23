@@ -1,1 +1,6 @@
+.gitignore
+build
+dist/
 submissions/
+__pycache__
+

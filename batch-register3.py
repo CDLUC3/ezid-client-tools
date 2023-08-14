@@ -379,7 +379,7 @@ def transform (args, mappings, row):
       s = md["_id"]
     dr.findall("*[@identifierType]")[0].attrib["identifierType"] =\
       "ARK" if s.startswith("ark:/") else "DOI"
-    md["datacite"] = xml.etree.ElementTree.tostring(dr)
+    md["datacite"] = (xml.etree.ElementTree.tostring(dr)).decode("UTF-8")
   return md
 
 def toAnvl (record):

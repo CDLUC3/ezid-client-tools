@@ -379,7 +379,7 @@ def transform (args, mappings, row):
       s = md["_id"]
     dr.findall("*[@identifierType]")[0].attrib["identifierType"] =\
       "ARK" if s.startswith("ark:/") else "DOI"
-    md["datacite"] = xml.etree.ElementTree.tostring(dr)
+    md["datacite"] = (xml.etree.ElementTree.tostring(dr)).decode("UTF-8")
   return md
 
 def toAnvl (record):
@@ -479,7 +479,7 @@ def process (args, mappings):
       record = transform(args, mappings, row)
       if args.previewMode:
         sys.stdout.write("\n")
-        sys.stdout.write(toAnvl(record).encode("UTF-8"))
+        sys.stdout.write(toAnvl(record))
       else:
         id, error = process1(args, record)
         w.writerow([c for c in formOutputRow(args, row, record, n, id, error)])

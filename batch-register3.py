@@ -226,20 +226,6 @@ import urllib.request, urllib.error, urllib.parse
 # library for better portability.
 import xml.etree.ElementTree
 
-import argparse
-import base64
-import csv
-import getpass
-import traceback
-import re
-import sys
-import urllib.request, urllib.parse, urllib.error
-import urllib.request, urllib.error, urllib.parse
-
-# We'd prefer to use LXML, but stick with the inferior built-in
-# library for better portability.
-import xml.etree.ElementTree
-
 
 def loadMappings(file):
     # returns: [(destination, expression), ...]

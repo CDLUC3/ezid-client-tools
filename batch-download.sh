@@ -59,13 +59,13 @@ status=22
 while [ $status -eq 22 ]; do
   echo -n "."
   sleep 5
-  curl -f -O -s $url
+  curl -L -f -O -s $url
   status=$?
 done
 echo
 
 if [ $status -eq 0 ]; then
-  echo $file
+  echo "downloaded file: $file"
 else
   echo "download failed"
   echo "url: $url"

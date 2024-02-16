@@ -63,7 +63,8 @@ done
 echo
 
 if [ $status -eq 0 ]; then
-  echo $file
+  echo "file: $file"
+  echo "url: $url"
 else
   echo "download failed"
   echo "url: $url"

@@ -1,5 +1,7 @@
 #! /bin/bash
 
+set -euo pipefail
+
 # Issues a batch download request; downloads to a file in the current
 # directory.
 

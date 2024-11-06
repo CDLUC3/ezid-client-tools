@@ -19,6 +19,7 @@ if [ $# -lt 3 ]; then
   echo "      _mappedPublisher"
   echo "      _mappedDate"
   echo "      _mappedType"
+  echo "      _target"
   echo "   notify=address                           repeatable"
   echo "   convertTimestamps={yes|no}"
   echo "   createdAfter={t|YYYY-MM-DDTHH:MM:SSZ}    inclusive"
